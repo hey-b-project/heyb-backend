@@ -22,7 +22,7 @@ export class AuthController {
     return this.authService.login(req.body.username, req.body.password);
   }
 
-  @Post('access-token')
+  @Post('accessToken')
   async accessToken(@Request() req: { body: { refreshToken: string } }) {
     return this.authService.refreshAccessToken(req.body.refreshToken);
   }

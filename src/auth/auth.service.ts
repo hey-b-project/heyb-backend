@@ -48,21 +48,24 @@ export class AuthService {
   }
 
   async refreshAccessToken(refreshToken: string) {
-    // refresh token 로직 구현
-    const token = await this.usersService.findByToken(refreshToken);
-    if (!token) {
-      throw new Error('Invalid refresh token');
-    }
+    try {
+      const token = await this.usersService.findByToken(refreshToken);
+      if (!token) {
+        throw new Error('Invalid refresh token');
+      }
 
-    const user = token.user;
-    const payload = { username: user.username, sub: user.id };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+      const user = token.user;
+      const payload = { username: user.username, sub: user.id };
+      return {
+        access_token: this.jwtService.sign(payload),
+      };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
   }
 
   async makeToken(user: User) {
-    const uniqueString = uuidv4() + `${user.username}-${Date.now()}`;
+    const uniqueString = `${uuidv4()}-${user.username}-${Date.now()}`;
     await this.usersService.updateToken(user.id, uniqueString);
     return uniqueString;
   }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { Token, User } from './users.entity';
 
 @Injectable()
@@ -17,7 +17,10 @@ export class UsersService {
   }
 
   async findByToken(token: string): Promise<Token | undefined> {
-    return this.tokenRepository.findOne({ where: { token } });
+    return this.tokenRepository.findOne({
+      where: { token, expiredAt: Not(IsNull()) },
+      relations: ['user'],
+    });
   }
 
   async updateToken(userId: number, uniqueString: string) {
