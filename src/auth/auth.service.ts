@@ -1,45 +1,69 @@
-// src/auth/auth.service.ts
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
-
+import { User } from 'src/users/users.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
-export class AuthService{
+export class AuthService {
   constructor(
-    private readonly usersService: UsersService,
-    private readonly jwtService: JwtService,
+    private usersService: UsersService,
+    private jwtService: JwtService,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
-  async validateUser(username: string, pass: string): Promise<any> {
-    const user = await this.usersService.findOne(username);
-    if (user && user.password === pass) {
-      const { password, ...result } = user;
-      return result;
+  async register(username: string, password: string) {
+    const existingUser = await this.usersRepository.findOne({
+      where: { username },
+    });
+    if (existingUser) {
+      throw new HttpException('User already exists', HttpStatus.CONFLICT);
     }
-    return null;
+
+    const user = this.usersRepository.create(new User(username, password));
+    await this.usersRepository.save(user);
   }
 
   async login(username: string, password: string) {
-    const user = await this.validateUser(username, password);
-    if (!user) {
-      return { message: 'User not found' };
+    try {
+      const user = await this.usersService.findOne(username);
+      if (!user) {
+        return { message: 'User not found' };
+      }
+      user.comparePassword(password);
+
+      const payload = { username: user.username, sub: user.id };
+      const refreshToken = await this.makeToken(user);
+
+      return {
+        access_token: this.jwtService.sign(payload),
+        refresh_token: refreshToken,
+      };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async refreshAccessToken(refreshToken: string) {
+    // refresh token 로직 구현
+    const token = await this.usersService.findByToken(refreshToken);
+    if (!token) {
+      throw new Error('Invalid refresh token');
     }
 
-    const payload = { username: user.username, sub: user.userId };
-
+    const user = token.user;
+    const payload = { username: user.username, sub: user.id };
     return {
-      accessToken: this.jwtService.sign(payload),
-      refreshToken: this.makeToken({ user: user }),
+      access_token: this.jwtService.sign(payload),
     };
   }
 
-  private makeToken(param: { user: any }) {
-    return uuidv4();
-  }
-
-  refreshAccessToken(refreshToken: string) {
-    return Promise.resolve(undefined);
+  async makeToken(user: User) {
+    const uniqueString = uuidv4() + `${user.username}-${Date.now()}`;
+    await this.usersService.updateToken(user.id, uniqueString);
+    return uniqueString;
   }
 }

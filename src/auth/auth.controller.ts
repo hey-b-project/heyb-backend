@@ -1,5 +1,5 @@
 // src/auth/auth.controller.ts
-import { Controller, Request, Post, UseGuards } from '@nestjs/common';
+import { Controller, Post, Request, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt.guard';
 
@@ -12,17 +12,18 @@ interface LoginRequest {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Post('register')
+  async register(@Request() req: { body: LoginRequest }) {
+    return this.authService.register(req.body.username, req.body.password);
+  }
+
   @Post('login')
-  async login(@Request() req: {
-    body: LoginRequest;
-  }) {
+  async login(@Request() req: { body: LoginRequest }) {
     return this.authService.login(req.body.username, req.body.password);
   }
 
   @Post('access-token')
-  async accessToken(@Request() req: {
-    body: { refreshToken: string };
-  }) {
+  async accessToken(@Request() req: { body: { refreshToken: string } }) {
     return this.authService.refreshAccessToken(req.body.refreshToken);
   }
 

@@ -5,6 +5,8 @@ import { JwtStrategy } from './jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { UsersModule } from '../users/users.module';
+import { User, Token } from '../users/users.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
   imports: [
@@ -14,6 +16,7 @@ import { UsersModule } from '../users/users.module';
       secret: 'yourSecretKey', // 비밀 키는 환경 변수로 관리하는 것이 좋습니다.
       signOptions: { expiresIn: '60m' },
     }),
+    TypeOrmModule.forFeature([User, Token]),
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
