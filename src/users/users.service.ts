@@ -18,7 +18,7 @@ export class UsersService {
 
   async findByToken(token: string): Promise<Token | undefined> {
     return this.tokenRepository.findOne({
-      where: { token, expiredAt: Not(IsNull()) },
+      where: { token },
       relations: ['user'],
     });
   }

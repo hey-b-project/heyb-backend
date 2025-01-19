@@ -49,12 +49,15 @@ export class AuthService {
 
   async refreshAccessToken(refreshToken: string) {
     try {
-      const token = await this.usersService.findByToken(refreshToken);
-      if (!token) {
+      const tokenEntity = await this.usersService.findByToken(refreshToken);
+      if (!tokenEntity) {
         throw new Error('Invalid refresh token');
       }
+      if (tokenEntity.expiredAt) {
+        throw new Error('Refresh token revoked');
+      }
 
-      const user = token.user;
+      const user = tokenEntity.user;
       const payload = { username: user.username, sub: user.id };
       return {
         access_token: this.jwtService.sign(payload),
